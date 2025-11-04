@@ -24,13 +24,12 @@
       .grid { grid-template-columns: 1fr; }
     }
   </style>
-  <!-- Firebase App (the core Firebase SDK) -->
   <script type="module">
-    // 1) 替换为你自己的 Firebase 配置
+    // 1) 将你的 Firebase 配置填在这里
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
+      databaseURL: "https://vkbs-2025-g5-open-day-default-rtdb.asia-southeast1.firebasedatabase.app/",
       projectId: "YOUR_PROJECT_ID",
       storageBucket: "YOUR_PROJECT_ID.appspot.com",
       messagingSenderId: "YOUR_SENDER_ID",
@@ -70,18 +69,11 @@
     });
 
     // 7) 课程信息
-    // 三节课的签名数据路径
     const capacity = 8;
     const classPaths = {
       class1: 'open_day/2025-11-21/G7/Grade5/Class1/signups',
       class2: 'open_day/2025-11-21/G7/Grade5/Class2/signups',
       class3: 'open_day/2025-11-21/G7/Grade5/Class3/signups'
-    };
-    // 显示信息
-    const classInfo = {
-      class1: { subject: '语文', teacher: '崔爱旋', time: 'P1' },
-      class2: { subject: 'English', teacher: 'Mr.William Franks', time: 'P2' },
-      class3: { subject: '数学', teacher: '何春利', time: 'P3' }
     };
 
     // 8) 实时显示剩余名额
@@ -94,14 +86,13 @@
           const used = Object.keys(data).length;
           const remaining = capacity - used;
           if (remainingEl) remainingEl.textContent = remaining;
-          // 如果当前用户已经报名此班，禁用按钮
+          // 按钮状态
           const btn = document.getElementById(clsKey + '-signup-btn');
           if (btn) {
             if (data[uid]) {
               btn.disabled = true;
               btn.textContent = '已报名';
             } else {
-              // 若用户已报名其他班，仍允许切换（通过取消再报名实现），这里仅示例性处理
               btn.disabled = false;
               btn.textContent = '报名';
             }
@@ -110,9 +101,7 @@
       });
     }
 
-    // 9) 更新 UI，显示当前用户报名情况
     function updateSignupStatusUI() {
-      // 高亮已报名的班级
       ['class1','class2','class3'].forEach((cls) => {
         const btn = document.getElementById(cls + '-signup-btn');
         if (!btn) return;
@@ -120,25 +109,14 @@
           btn.disabled = true;
           btn.textContent = '已报名';
         } else {
-          // 如果还没报名，保留可报名状态
-          if (!userSignedClass) {
-            btn.disabled = false;
-            btn.textContent = '报名';
-          } else {
-            // 已报名其他班级，允许取消当前报名再报名
-            btn.disabled = false;
-            btn.textContent = '报名';
-          }
+          btn.disabled = false;
+          btn.textContent = '报名';
         }
       });
-      // 取消按钮状态
       const cancelBtn = document.getElementById('cancel-btn');
-      if (cancelBtn) {
-        cancelBtn.style.display = userSignedClass ? 'inline-block' : 'none';
-      }
+      if (cancelBtn) cancelBtn.style.display = userSignedClass ? 'inline-block' : 'none';
     }
 
-    // 10) 报名逻辑（仅签一个班）
     async function signUpClass(clsKey) {
       if (!uid) {
         alert('正在初始化，请稍后再试');
@@ -150,16 +128,11 @@
       }
       const classSignupsRef = ref(db, classPaths[clsKey]);
 
-      // 使用事务保证席位不足时不会超卖
       const res = await runTransaction(classSignupsRef, (current) => {
         if (current == null) current = {};
-        // 已报この班级
         if (current[uid]) return current;
         const occupied = Object.keys(current).length;
-        if (occupied >= capacity) {
-          // 说明席位已满，终止事务
-          return;
-        }
+        if (occupied >= capacity) return; // 已满
         current[uid] = true;
         return current;
       });
@@ -169,13 +142,11 @@
         return;
       }
 
-      // 如果之前报名了其他班级，先把旧班级的报名移除（确保一人一班）
+      // 取消旧班级的报名
       if (userSignedClass && userSignedClass !== clsKey) {
         const oldRef = ref(db, classPaths[userSignedClass]);
         await runTransaction(oldRef, (oldCurrent) => {
-          if (oldCurrent && oldCurrent[uid]) {
-            delete oldCurrent[uid];
-          }
+          if (oldCurrent && oldCurrent[uid]) delete oldCurrent[uid];
           return oldCurrent;
         });
       }
@@ -189,21 +160,16 @@
       alert('报名成功！');
     }
 
-    // 11) 取消报名
     async function cancelSignup() {
       if (!uid || !userSignedClass) {
         alert('尚未报名任何班级');
         return;
       }
-      // 从当前班级的报名列表中移除
       const currRef = ref(db, classPaths[userSignedClass]);
       await runTransaction(currRef, (current) => {
-        if (current && current[uid]) {
-          delete current[uid];
-        }
+        if (current && current[uid]) delete current[uid];
         return current;
       });
-      // 清除用户报名记录
       const userSignupRef = ref(db, 'users/' + uid + '/signup_class');
       await remove(userSignupRef);
 
@@ -212,23 +178,14 @@
       alert('已取消报名');
     }
 
-    // 12) 初次加载后的监听绑定
     window.addEventListener('DOMContentLoaded', () => {
-      // 绑定按钮事件（在 DOM 完全加载后绑定，避免找不到元素）
-      const btn1 = document.getElementById('class1-signup-btn');
-      const btn2 = document.getElementById('class2-signup-btn');
-      const btn3 = document.getElementById('class3-signup-btn');
-      if (btn1) btn1.addEventListener('click', () => signUpClass('class1'));
-      if (btn2) btn2.addEventListener('click', () => signUpClass('class2'));
-      if (btn3) btn3.addEventListener('click', () => signUpClass('class3'));
+      document.getElementById('class1-signup-btn').addEventListener('click', () => signUpClass('class1'));
+      document.getElementById('class2-signup-btn').addEventListener('click', () => signUpClass('class2'));
+      document.getElementById('class3-signup-btn').addEventListener('click', () => signUpClass('class3'));
 
-      const cancelBtn = document.getElementById('cancel-btn');
-      if (cancelBtn) cancelBtn.addEventListener('click', cancelSignup);
+      document.getElementById('cancel-btn').addEventListener('click', cancelSignup);
 
-      // 绑定实时剩余名额
       bindRemainingListeners();
-
-      // 初次刷新 UI
       updateSignupStatusUI();
     });
   </script>
@@ -271,7 +228,5 @@
       <button id="cancel-btn" class="cta" style="background:#e11d48; display:none;" type="button">取消我的报名</button>
     </div>
   </div>
-
-  <!-- 重要：以下脚本为核心逻辑，放在页面底部以确保 DOM 就绪 -->
 </body>
 </html>
