@@ -47,6 +47,14 @@
     
     .admin-panel { display: none; }
     .admin-panel.active { display: block; }
+    .admin-actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .admin-actions button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .3s; }
+    .btn-export { background: #10b981; color: white; }
+    .btn-export:hover { background: #059669; }
+    .btn-delete-all { background: #e11d48; color: white; }
+    .btn-delete-all:hover { background: #be123c; }
+    .btn-delete-single { background: #ef4444; color: white; padding: 6px 12px; font-size: 12px; border-radius: 4px; }
+    .btn-delete-single:hover { background: #dc2626; }
     .admin-panel table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 13px; }
     .admin-panel th, .admin-panel td { border: 1px solid #e0e7ff; padding: 10px; text-align: left; }
     .admin-panel th { background: #667eea; color: white; font-weight: 600; }
@@ -58,6 +66,8 @@
       .container { padding: 20px; padding-top: 100px; }
       .school-logo { width: 60px; top: 15px; left: 15px; }
       h1 { font-size: 22px; }
+      .admin-panel table { font-size: 11px; }
+      .admin-panel th, .admin-panel td { padding: 6px; }
     }
   </style>
 </head>
@@ -110,27 +120,27 @@
       <div class="grid" aria-label="选课三节课程">
         <!-- 课程 1 -->
         <section class="card">
-          <h3>P1 - G7 语文</h3>
-          <div class="row"><span class="label">👨‍🏫 老师：</span><span class="value">崔爱旋老师</span></div>
-          <div class="row"><span class="label">⏰ 时段：</span><span class="value">P1</span></div>
+          <h3>P1 - 语文</h3>
+          <div class="row"><span class="label">👨‍🏫 老师：</span><span class="value">崔老师</span></div>
+          <div class="row"><span class="label">⏰ 时间：</span><span class="value">8:30 - 9:10</span></div>
           <div class="row"><span class="label">📊 剩余名额：</span><span class="value remaining" id="class1-remaining">8</span></div>
           <button id="class1-signup-btn" class="cta" type="button" onclick="signUpClass('class1')">立即报名</button>
         </section>
 
         <!-- 课程 2 -->
         <section class="card">
-          <h3>P2 - G7 H English</h3>
-          <div class="row"><span class="label">👨‍🏫 老师：</span><span class="value">Mr. William Franks</span></div>
-          <div class="row"><span class="label">⏰ 时段：</span><span class="value">P2</span></div>
+          <h3>P2 - 英语 English</h3>
+          <div class="row"><span class="label">👨‍🏫 老师：</span><span class="value">Mr. Franks</span></div>
+          <div class="row"><span class="label">⏰ 时间：</span><span class="value">9:20 - 10:00</span></div>
           <div class="row"><span class="label">📊 剩余名额：</span><span class="value remaining" id="class2-remaining">8</span></div>
           <button id="class2-signup-btn" class="cta" type="button" onclick="signUpClass('class2')">立即报名</button>
         </section>
 
         <!-- 课程 3 -->
         <section class="card">
-          <h3>P3 - G7(345) H Math</h3>
-          <div class="row"><span class="label">👨‍🏫 老师：</span><span class="value">何春利老师</span></div>
-          <div class="row"><span class="label">⏰ 时段：</span><span class="value">P3</span></div>
+          <h3>P3 - 数学</h3>
+          <div class="row"><span class="label">👨‍🏫 老师：</span><span class="value">何老师</span></div>
+          <div class="row"><span class="label">⏰ 时间：</span><span class="value">10:30 - 11:10</span></div>
           <div class="row"><span class="label">📊 剩余名额：</span><span class="value remaining" id="class3-remaining">8</span></div>
           <button id="class3-signup-btn" class="cta" type="button" onclick="signUpClass('class3')">立即报名</button>
         </section>
@@ -143,6 +153,13 @@
       <button class="logout-btn" onclick="logout()">退出登录</button>
       
       <h2 style="color: #667eea;">📋 所有报名信息</h2>
+      
+      <!-- 管理员操作按钮 -->
+      <div class="admin-actions">
+        <button class="btn-export" onclick="exportToExcel()">📥 导出为Excel</button>
+        <button class="btn-delete-all" onclick="deleteAllRecords()">🗑️ 一键删除所有</button>
+      </div>
+      
       <div id="admin-data">
         <table>
           <thead>
@@ -153,10 +170,11 @@
               <th>家长电话</th>
               <th>报名课程</th>
               <th>提交时间</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody id="admin-table-body">
-            <tr><td colspan="6" style="text-align:center; color: #999;">加载中...</td></tr>
+            <tr><td colspan="7" style="text-align:center; color: #999;">加载中...</td></tr>
           </tbody>
         </table>
       </div>
@@ -179,6 +197,9 @@
     </div>
   </div>
 
+  <!-- 引入SheetJS库用于Excel导出 -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
   <script type="module">
     // Firebase 配置
     const firebaseConfig = {
@@ -192,19 +213,20 @@
     };
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getDatabase, ref, onValue, runTransaction, set, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+    import { getDatabase, ref, onValue, runTransaction, set, get, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
     const capacity = 8;
     const courseInfo = {
-      class1: { name: 'P1 - G7 语文（崔爱旋老师）', path: 'courses/class1' },
-      class2: { name: 'P2 - G7 H English（Mr. William Franks）', path: 'courses/class2' },
-      class3: { name: 'P3 - G7(345) H Math（何春利老师）', path: 'courses/class3' }
+      class1: { name: 'P1 (8:30-9:10) 语文（崔老师）', path: 'courses/class1' },
+      class2: { name: 'P2 (9:20-10:00) 英语 English（Mr. Franks）', path: 'courses/class2' },
+      class3: { name: 'P3 (10:30-11:10) 数学（何老师）', path: 'courses/class3' }
     };
 
     let isAdmin = false;
+    let allSignupsData = []; // 存储所有报名数据用于导出
 
     // 实时监听剩余名额
     function bindRemainingListeners() {
@@ -368,6 +390,78 @@
       document.getElementById('admin-view').classList.remove('active');
     };
 
+    // 删除单条记录
+    window.deleteSingleRecord = async function(courseKey, signupId) {
+      if (!confirm('确定要删除这条报名记录吗？')) return;
+      
+      try {
+        const signupRef = ref(db, `${courseInfo[courseKey].path}/signups/${signupId}`);
+        await remove(signupRef);
+        alert('删除成功！');
+      } catch (error) {
+        console.error('删除失败：', error);
+        alert('删除失败，请重试！');
+      }
+    };
+
+    // 一键删除所有记录
+    window.deleteAllRecords = async function() {
+      const confirmation = prompt('⚠️ 警告：此操作将删除所有报名记录！\n\n请输入"确认删除"以继续：');
+      
+      if (confirmation !== '确认删除') {
+        alert('操作已取消');
+        return;
+      }
+
+      try {
+        const allCoursesRef = ref(db, 'courses');
+        await remove(allCoursesRef);
+        alert('所有记录已删除！');
+      } catch (error) {
+        console.error('删除失败：', error);
+        alert('删除失败，请重试！');
+      }
+    };
+
+    // 导出为Excel
+    window.exportToExcel = function() {
+      if (allSignupsData.length === 0) {
+        alert('暂无数据可导出！');
+        return;
+      }
+
+      // 准备Excel数据
+      const excelData = allSignupsData.map(signup => ({
+        '学生中文姓名': signup.studentNameCn,
+        '学生英文姓名': signup.studentNameEn || '-',
+        '学生班级': signup.studentClass,
+        '家长电话': signup.phone,
+        '报名课程': signup.course,
+        '提交时间': new Date(signup.timestamp).toLocaleString('zh-CN')
+      }));
+
+      // 创建工作簿
+      const ws = XLSX.utils.json_to_sheet(excelData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, '报名信息');
+
+      // 设置列宽
+      ws['!cols'] = [
+        { wch: 15 }, // 学生中文姓名
+        { wch: 20 }, // 学生英文姓名
+        { wch: 12 }, // 学生班级
+        { wch: 15 }, // 家长电话
+        { wch: 35 }, // 报名课程
+        { wch: 20 }  // 提交时间
+      ];
+
+      // 生成文件名
+      const fileName = `万科双语学校家长开放日报名_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.xlsx`;
+
+      // 导出
+      XLSX.writeFile(wb, fileName);
+    };
+
     // 加载管理员数据
     function loadAdminData() {
       const allCoursesRef = ref(db, 'courses');
@@ -376,22 +470,25 @@
         const tbody = document.getElementById('admin-table-body');
         tbody.innerHTML = '';
         
-        let allSignups = [];
+        allSignupsData = []; // 清空并重新收集数据
         
         for (let courseKey in courses) {
           const signups = courses[courseKey].signups || {};
           for (let signupId in signups) {
-            allSignups.push(signups[signupId]);
+            const signup = signups[signupId];
+            signup._courseKey = courseKey; // 保存课程key用于删除
+            signup._signupId = signupId;   // 保存报名ID用于删除
+            allSignupsData.push(signup);
           }
         }
         
         // 按时间排序
-        allSignups.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        allSignupsData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         
-        if (allSignups.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: #999;">暂无报名数据</td></tr>';
+        if (allSignupsData.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: #999;">暂无报名数据</td></tr>';
         } else {
-          allSignups.forEach(signup => {
+          allSignupsData.forEach(signup => {
             const row = tbody.insertRow();
             row.insertCell(0).textContent = signup.studentNameCn;
             row.insertCell(1).textContent = signup.studentNameEn || '-';
@@ -399,6 +496,14 @@
             row.insertCell(3).textContent = signup.phone;
             row.insertCell(4).textContent = signup.course;
             row.insertCell(5).textContent = new Date(signup.timestamp).toLocaleString('zh-CN');
+            
+            // 添加删除按钮
+            const actionCell = row.insertCell(6);
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = '删除';
+            deleteBtn.className = 'btn-delete-single';
+            deleteBtn.onclick = () => deleteSingleRecord(signup._courseKey, signup._signupId);
+            actionCell.appendChild(deleteBtn);
           });
         }
       });
