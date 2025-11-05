@@ -47,6 +47,8 @@
     
     .admin-panel { display: none; }
     .admin-panel.active { display: block; }
+    .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .admin-header h1 { margin: 0; text-align: left; padding: 0; }
     .admin-actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
     .admin-actions button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all .3s; }
     .btn-export { background: #10b981; color: white; }
@@ -59,7 +61,8 @@
     .admin-panel th, .admin-panel td { border: 1px solid #e0e7ff; padding: 10px; text-align: left; }
     .admin-panel th { background: #667eea; color: white; font-weight: 600; }
     .admin-panel tr:nth-child(even) { background: #f8f9ff; }
-    .logout-btn { background: #e11d48; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
+    .logout-btn { background: #e11d48; color: white; border: none; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all .3s; }
+    .logout-btn:hover { background: #be123c; }
     
     @media (max-width: 980px) {
       .grid { grid-template-columns: 1fr; }
@@ -68,6 +71,8 @@
       h1 { font-size: 22px; }
       .admin-panel table { font-size: 11px; }
       .admin-panel th, .admin-panel td { padding: 6px; }
+      .admin-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+      .admin-header h1 { font-size: 22px; }
     }
   </style>
 </head>
@@ -149,8 +154,11 @@
 
     <!-- 管理员面板 -->
     <div id="admin-view" class="admin-panel">
-      <h1>🔐 管理员后台</h1>
-      <button class="logout-btn" onclick="logout()">退出登录</button>
+      <!-- 管理员顶部导航 -->
+      <div class="admin-header">
+        <h1>🔐 管理员后台</h1>
+        <button class="logout-btn" onclick="logout()">退出登录</button>
+      </div>
       
       <h2 style="color: #667eea;">📋 所有报名信息</h2>
       
