@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="zh-CN">
 <head>
@@ -131,7 +132,7 @@
       <h1>🏫 万科双语学校 2025 五年级 家长开放日</h1>
       <div class="subtitle">
         <strong>活动日期：2025年11月21日</strong><br>
-        说明：每位家长只能选择一节课观摩，每节课名额上限为 8 人，先到先得。
+        说明：每位家长只能为同一位学生报名一节课，每节课名额上限为 8 人，先到先得。
       </div>
       
       <div class="admin-link">
@@ -338,7 +339,7 @@
       const studentClass = document.getElementById('student-class').value;
       const phone = document.getElementById('parent-phone').value.trim();
 
-      // 检查手机号是否已报名
+      // 🔥 核心修改：检查学生中文姓名是否已报名
       const allCoursesRef = ref(db, 'courses');
       const allCoursesSnap = await get(allCoursesRef);
       const allCourses = allCoursesSnap.val() || {};
@@ -347,7 +348,8 @@
       for (let ck in allCourses) {
         const signups = allCourses[ck].signups || {};
         for (let sid in signups) {
-          if (signups[sid].phone === phone) {
+          // 🔥 改为按学生中文姓名验证（忽略大小写和空格）
+          if (signups[sid].studentNameCn.trim().toLowerCase() === nameCn.toLowerCase()) {
             alreadySignedCourse = ck;
             break;
           }
@@ -356,8 +358,13 @@
       }
 
       if (alreadySignedCourse && alreadySignedCourse !== courseKey) {
-        const confirmMsg = `该手机号已报名${courseInfo[alreadySignedCourse].name}，是否切换到${courseInfo[courseKey].name}？`;
+        const confirmMsg = `学生"${nameCn}"已报名${courseInfo[alreadySignedCourse].name}，是否切换到${courseInfo[courseKey].name}？`;
         if (!confirm(confirmMsg)) return;
+      }
+
+      if (alreadySignedCourse && alreadySignedCourse === courseKey) {
+        alert(`学生"${nameCn}"已经报名了该课程，无需重复报名！`);
+        return;
       }
 
       const courseRef = ref(db, courseInfo[courseKey].path);
@@ -392,14 +399,14 @@
         return;
       }
 
-      // 如果之前报名了其他课程，删除旧的报名
+      // 🔥 如果之前报名了其他课程，删除旧的报名（按学生中文姓名查找）
       if (alreadySignedCourse && alreadySignedCourse !== courseKey) {
         const oldCourseRef = ref(db, courseInfo[alreadySignedCourse].path);
         await runTransaction(oldCourseRef, (current) => {
           if (!current || !current.signups) return current;
           const signups = current.signups;
           for (let sid in signups) {
-            if (signups[sid].phone === phone) {
+            if (signups[sid].studentNameCn.trim().toLowerCase() === nameCn.toLowerCase()) {
               delete signups[sid];
               break;
             }
